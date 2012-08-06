@@ -1,0 +1,35 @@
+#!/bin/bash
+
+OK_STATE=0
+WARNING_STATE=1
+CRITICAL_STATE=2
+UNKNOWN_STATE=3
+EXPECTED_ARGS=4
+E_BADARGS=65
+
+private=$(ifconfig -a | grep 192 | awk '{print $2}')
+
+if [[ "$#" -ne "$EXPECTED_ARGS" || "$1" != '-i' || "$3" != '-b' ]]; then
+    echo "Usage: `basename $0` [-i] IP [-b] BUCKET_NAME"
+    exit ${UNKNOWN_STATE}
+elif [ "$private" != "$2" ]; then	
+    echo "Wrong private ip, I got $private. Please double check."
+    exit ${UNKNOWN_STATE}
+fi
+
+check=`curl --silent -i http://$2:8098/riak?bucket=$4 > /tmp/riak_check`
+
+if [ -f /tmp/riak_check ]; then
+    http=$(cat /tmp/riak_check | grep "HTTP/1.1 200 OK" | wc -l)
+    if [[ $http -eq "1" ]]; then
+	echo "OK - Riak answered that the bucket $4 exists"
+	exit ${OK_STATE}
+    else
+	echo "CRITICAL - Didn't get a 200 OK on bucket $4"
+	exit ${CRITICAL_STATE}
+    fi
+else
+    echo "Could not determine if the bucket exists. Please check /tmp/riak_check on 
+target server."
+    exit ${UNKNOWN_STATE}
+fi
