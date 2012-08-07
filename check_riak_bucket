@@ -7,7 +7,7 @@ UNKNOWN_STATE=3
 EXPECTED_ARGS=4
 E_BADARGS=65
 
-private=$(ifconfig -a | grep 192 | awk '{print $2}')
+private=$(ifconfig -a | awk '{print $2}'| grep '^192\.')
 
 if [[ "$#" -ne "$EXPECTED_ARGS" || "$1" != '-i' || "$3" != '-b' ]]; then
     echo "Usage: `basename $0` [-i] IP [-b] BUCKET_NAME"
@@ -17,19 +17,19 @@ elif [ "$private" != "$2" ]; then
     exit ${UNKNOWN_STATE}
 fi
 
-check=`curl --silent -i http://$2:8098/riak?bucket=$4 > /tmp/riak_check`
+`curl --silent -i http://$2:8098/riak?buckets=true > /tmp/riak_check_buckets`
 
-if [ -f /tmp/riak_check ]; then
-    http=$(cat /tmp/riak_check | grep "HTTP/1.1 200 OK" | wc -l)
-    if [[ $http -eq "1" ]]; then
-	echo "OK - Riak answered that the bucket $4 exists"
+if [ -f /tmp/riak_check_buckets ]; then
+    bucket=`cat /tmp/riak_check_buckets | egrep "$4" | wc -l`
+    if [[ "$bucket" -ge "1" ]]; then
+	echo "OK - Riak answered that the bucket '$4' exists"
+    rm -f /tmp/riak_check_buckets
 	exit ${OK_STATE}
     else
-	echo "CRITICAL - Didn't get a 200 OK on bucket $4"
+	echo "CRITICAL - Bucket '$4' could not be found."
 	exit ${CRITICAL_STATE}
     fi
 else
-    echo "Could not determine if the bucket exists. Please check /tmp/riak_check on 
-target server."
+    echo "Could not determine if the bucket exists. Please check /tmp/riak_check_buckets on target server."
     exit ${UNKNOWN_STATE}
 fi
