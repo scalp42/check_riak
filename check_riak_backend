@@ -1,0 +1,37 @@
+#!/bin/bash
+
+OK_STATE=0
+WARNING_STATE=1
+CRITICAL_STATE=2
+UNKNOWN_STATE=3
+EXPECTED_ARGS=2
+E_BADARGS=65
+
+private=$(ifconfig -a | awk '{print $2}'| grep '^192\.')
+
+riak_ip=$(cat /opt/riak/riak/etc/app.config | grep "http," | awk '{print $3}' | tr -d "\"" | tr -d "{" | tr -d ",")
+
+if [[ "$#" -ne "$EXPECTED_ARGS" || "$1" != '-b' ]]; then
+    echo "Usage: `basename $0` [-b] STORAGE_BACKEND "
+    exit ${UNKNOWN_STATE}
+elif [ "$private" != "$riak_ip" ]; then	
+    echo "WARNING - Riak not listenning on private ip. Please make sure it's wanted."
+    exit ${WARNING_STATE}
+fi
+
+`curl --silent -i http://$riak_ip:8098/stats > /tmp/riak_check_backend`
+
+if [ -f /tmp/riak_check_stats ]; then
+    backend=`cat /tmp/riak_check_stats | gsed 's/[{}]//g' | awk -v k="text" '{n=split($0,a,","); for (i=1; i<=n; i++) print a[i]}' | sed 's/\"\:\"/\|/g' |  sed 's/[\,]/ /g' | sed 's/\"//g' | grep -w "storage_backend" | awk -F '|' '{print $2}'`
+    if [ "$backend" == "$2" ]; then
+		echo "OK - Storage backend used is $backend." 
+    	rm -f /tmp/riak_check_backend
+		exit ${OK_STATE}
+    else
+		echo "CRITICAL - Different storage backend in use : $backend"
+		exit ${CRITICAL_STATE}
+    fi
+else
+    echo "Could not determine the storage backend used for the current node."
+    exit ${UNKNOWN_STATE}
+fi
