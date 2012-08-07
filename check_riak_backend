@@ -21,8 +21,8 @@ fi
 
 `curl --silent -i http://$riak_ip:8098/stats > /tmp/riak_check_backend`
 
-if [ -f /tmp/riak_check_stats ]; then
-    backend=`cat /tmp/riak_check_stats | gsed 's/[{}]//g' | awk -v k="text" '{n=split($0,a,","); for (i=1; i<=n; i++) print a[i]}' | sed 's/\"\:\"/\|/g' |  sed 's/[\,]/ /g' | sed 's/\"//g' | grep -w "storage_backend" | awk -F '|' '{print $2}'`
+if [ -f /tmp/riak_check_backend ]; then
+    backend=`cat /tmp/riak_check_backend | gsed 's/[{}]//g' | awk -v k="text" '{n=split($0,a,","); for (i=1; i<=n; i++) print a[i]}' | sed 's/\"\:\"/\|/g' |  sed 's/[\,]/ /g' | sed 's/\"//g' | grep -w "storage_backend" | awk -F '|' '{print $2}'`
     if [ "$backend" == "$2" ]; then
 		echo "OK - Storage backend used is $backend." 
     	rm -f /tmp/riak_check_backend
