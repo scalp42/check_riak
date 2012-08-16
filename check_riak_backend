@@ -12,7 +12,7 @@ private=`/sbin/ifconfig -a | awk '{print $2}'| grep '^192\.'`
 riak_ip=`cat /opt/riak/riak/etc/app.config | grep "http," | awk '{print $3}' | tr -d "\"" | tr -d "{" | tr -d ","`
 
 if [[ "$#" -ne "$EXPECTED_ARGS" || "$1" != '-b' ]]; then
-    echo "Usage: `basename $0` [-b] STORAGE_BACKEND "
+    echo "Usage: `basename $0` -b STORAGE_BACKEND "
     exit ${UNKNOWN_STATE}
 elif [ "$private" != "$riak_ip" ]; then	
     echo "WARNING - Riak not listenning on private ip. Please make sure it's wanted."
@@ -22,7 +22,7 @@ fi
 `curl --silent http://$riak_ip:8098/stats > /tmp/riak_check_backend`
 
 if [ -f /tmp/riak_check_backend ]; then
-    `cat /tmp/riak_check_backend | gsed 's/[{}]//' | awk -v k="text" '{n=split($0,a,","); for (i=1; i<=n; i++) print a[i]}' | sed 's/\"\:\"/\|/' |  sed 's/[\,]/ /' | sed 's/\"//' | grep -w "storage_backend" | awk -F '|' '{print $2}' | gsed 's/riak_kv_//' | gsed 's/_backend//' > /tmp/riak_check_backend_curl`
+    `cat /tmp/riak_check_backend | sed 's/[{}]//' | awk -v k="text" '{n=split($0,a,","); for (i=1; i<=n; i++) print a[i]}' | sed 's/\"\:\"/\|/' |  sed 's/[\,]/ /' | sed 's/\"//' | grep -w "storage_backend" | awk -F '|' '{print $2}' | gsed 's/riak_kv_//' | gsed 's/_backend//' | sed 's/\"//' > /tmp/riak_check_backend_curl`
     if [ `cat /tmp/riak_check_backend_curl` == "$2" ]; then
 		echo "OK - Storage backend used is `cat /tmp/riak_check_backend_curl`." 
     	rm -f /tmp/riak_check_backend

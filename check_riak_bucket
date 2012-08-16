@@ -10,7 +10,7 @@ E_BADARGS=65
 private=$(ifconfig -a | awk '{print $2}'| grep '^192\.')
 
 if [[ "$#" -ne "$EXPECTED_ARGS" || "$1" != '-i' || "$3" != '-b' ]]; then
-    echo "Usage: `basename $0` [-i] IP [-b] BUCKET_NAME"
+    echo "Usage: `basename $0` -i IP -b BUCKET_NAME"
     exit ${UNKNOWN_STATE}
 elif [ "$private" != "$2" ]; then	
     echo "Wrong private ip, I got $private. Please double check."
